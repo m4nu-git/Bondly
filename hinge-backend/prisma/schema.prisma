@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String?       @unique
+  phone        String?       @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  profile      Profile?
+  preferences  Preference?
+  swipesGiven  Swipe[]       @relation("swiper")
+  swipesRecvd  Swipe[]       @relation("swiped")
+  matches1     Match[]       @relation("user1")
+  matches2     Match[]       @relation("user2")
+  messages     Message[]
+  deviceTokens DeviceToken[]
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  name      String
+  dob       DateTime
+  gender    String
+  bio       String?
+  latitude  Float?
+  longitude Float?
+  photos    Photo[]
+  prompts   Prompt[]
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Photo {
+  id        String  @id @default(uuid())
+  profileId String
+  url       String
+  s3Key     String
+  order     Int
+  isPrimary Boolean @default(false)
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Prompt {
+  id        String  @id @default(uuid())
+  profileId String
+  question  String
+  answer    String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Preference {
+  id          String @id @default(uuid())
+  userId      String @unique
+  minAge      Int    @default(18)
+  maxAge      Int    @default(50)
+  gender      String @default("any")
+  maxDistance Int    @default(50)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Swipe {
+  id        String      @id @default(uuid())
+  swiperId  String
+  swipedId  String
+  action    SwipeAction
+  createdAt DateTime    @default(now())
+  swiper    User        @relation("swiper", fields: [swiperId], references: [id])
+  swiped    User        @relation("swiped", fields: [swipedId], references: [id])
+
+  @@unique([swiperId, swipedId])
+}
+
+model Match {
+  id           String        @id @default(uuid())
+  user1Id      String
+  user2Id      String
+  matchedAt    DateTime      @default(now())
+  isActive     Boolean       @default(true)
+  user1        User          @relation("user1", fields: [user1Id], references: [id])
+  user2        User          @relation("user2", fields: [user2Id], references: [id])
+  conversation Conversation?
+
+  @@unique([user1Id, user2Id])
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  matchId   String    @unique
+  createdAt DateTime  @default(now())
+  match     Match     @relation(fields: [matchId], references: [id])
+  messages  Message[]
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  type           MessageType  @default(TEXT)
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation(fields: [senderId], references: [id])
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum SwipeAction {
+  LIKE
+  PASS
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  GIF
+}

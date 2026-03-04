@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: hinge_postgres
+    environment:
+      POSTGRES_USER: hinge
+      POSTGRES_PASSWORD: hinge_secret
+      POSTGRES_DB: hinge_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hinge -d hinge_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: hinge_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
