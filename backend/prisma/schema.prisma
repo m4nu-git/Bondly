@@ -8,43 +8,54 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String?       @unique
-  phone        String?       @unique
-  passwordHash String
-  createdAt    DateTime      @default(now())
-  profile      Profile?
-  preferences  Preference?
-  swipesGiven  Swipe[]       @relation("swiper")
-  swipesRecvd  Swipe[]       @relation("swiped")
-  matches1     Match[]       @relation("user1")
-  matches2     Match[]       @relation("user2")
-  messages     Message[]
-  deviceTokens DeviceToken[]
+  id            String      @id @default(uuid())
+  email         String?     @unique
+  phone         String?     @unique
+  passwordHash  String
+  createdAt     DateTime    @default(now())
+  profile       Profile?
+  preferences   Preference?
+  matches1      Match[]     @relation("user1")
+  matches2      Match[]     @relation("user2")
+  likesGiven    Like[]      @relation("likes_given")
+  likesReceived Like[]      @relation("likes_received")
+  chatsSent     Chat[]      @relation("chats_sent")
+  chatsReceived Chat[]      @relation("chats_received")
 }
 
 model Profile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  name      String
-  dob       DateTime
-  gender    String
-  bio       String?
-  latitude  Float?
-  longitude Float?
-  photos    Photo[]
-  prompts   Prompt[]
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  name              String
+  dob               DateTime
+  gender            String
+  bio               String?
+  hometown          String?
+  religion          String?
+  occupation        String?
+  datingType        String?
+  latitude          Float?
+  longitude         Float?
+  locationUpdatedAt DateTime?
+  geohash           String?
+  bloomFilter       String    @default("")
+  age               Int?
+  photos            Photo[]
+  prompts           Prompt[]
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([geohash])
 }
 
 model Photo {
   id        String  @id @default(uuid())
   profileId String
   url       String
-  s3Key     String
+  s3Key     String?
   order     Int
   isPrimary Boolean @default(false)
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  likes     Like[]
 }
 
 model Prompt {
@@ -53,6 +64,7 @@ model Prompt {
   question  String
   answer    String
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  likes     Like[]
 }
 
 model Preference {
@@ -61,71 +73,46 @@ model Preference {
   minAge      Int    @default(18)
   maxAge      Int    @default(50)
   gender      String @default("any")
-  maxDistance Int    @default(50)
+  maxDistance Int    @default(100)
   user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Swipe {
-  id        String      @id @default(uuid())
-  swiperId  String
-  swipedId  String
-  action    SwipeAction
-  createdAt DateTime    @default(now())
-  swiper    User        @relation("swiper", fields: [swiperId], references: [id])
-  swiped    User        @relation("swiped", fields: [swipedId], references: [id])
+model Like {
+  id        String   @id @default(uuid())
+  likedById String
+  likedToId String
+  photoId   String?
+  promptId  String?
+  comment   String   @default("")
+  createdAt DateTime @default(now())
 
-  @@unique([swiperId, swipedId])
+  likedBy User    @relation("likes_given",    fields: [likedById], references: [id])
+  likedTo User    @relation("likes_received", fields: [likedToId], references: [id])
+  photo   Photo?  @relation(fields: [photoId],  references: [id])
+  prompt  Prompt? @relation(fields: [promptId], references: [id])
+
+  @@unique([likedById, likedToId])
 }
 
 model Match {
-  id           String        @id @default(uuid())
-  user1Id      String
-  user2Id      String
-  matchedAt    DateTime      @default(now())
-  isActive     Boolean       @default(true)
-  user1        User          @relation("user1", fields: [user1Id], references: [id])
-  user2        User          @relation("user2", fields: [user2Id], references: [id])
-  conversation Conversation?
+  id        String   @id @default(uuid())
+  user1Id   String
+  user2Id   String
+  matchedAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+  user1     User     @relation("user1", fields: [user1Id], references: [id])
+  user2     User     @relation("user2", fields: [user2Id], references: [id])
 
   @@unique([user1Id, user2Id])
 }
 
-model Conversation {
-  id        String    @id @default(uuid())
-  matchId   String    @unique
-  createdAt DateTime  @default(now())
-  match     Match     @relation(fields: [matchId], references: [id])
-  messages  Message[]
-}
+model Chat {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  message    String
+  createdAt  DateTime @default(now())
 
-model Message {
-  id             String       @id @default(uuid())
-  conversationId String
-  senderId       String
-  content        String
-  type           MessageType  @default(TEXT)
-  readAt         DateTime?
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  sender         User         @relation(fields: [senderId], references: [id])
-}
-
-model DeviceToken {
-  id        String   @id @default(uuid())
-  userId    String
-  token     String   @unique
-  platform  String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-enum SwipeAction {
-  LIKE
-  PASS
-}
-
-enum MessageType {
-  TEXT
-  IMAGE
-  GIF
+  sender   User @relation("chats_sent",     fields: [senderId],   references: [id])
+  receiver User @relation("chats_received", fields: [receiverId], references: [id])
 }

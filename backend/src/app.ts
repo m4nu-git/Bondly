@@ -6,6 +6,7 @@ import { env } from "./config/env";
 import { redis } from "./config/redis";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { profileRoutes } from "./modules/profile/profile.routes";
+import { usersRoutes } from "./modules/users/users.routes";
 
 export async function buildApp() {
   const app = Fastify({
@@ -42,6 +43,7 @@ export async function buildApp() {
   // Routes
   await app.register(authRoutes, { prefix: "/auth" });
   await app.register(profileRoutes, { prefix: "" });
+  await app.register(usersRoutes, { prefix: "/users" });
 
   // Global error handler
   app.setErrorHandler((err: FastifyError, _req, reply) => {

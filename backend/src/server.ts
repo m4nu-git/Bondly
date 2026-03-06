@@ -2,9 +2,13 @@ import { buildApp } from "./app";
 import { env } from "./config/env";
 import { connectRedis } from "./config/redis";
 import { prisma } from "./config/db";
+import { startWsServer } from "./ws/wsServer";
 
 async function main() {
   await connectRedis();
+
+  // Start WebSocket server on port 8080 (matches reference repo)
+  startWsServer(8080);
 
   const app = await buildApp();
 

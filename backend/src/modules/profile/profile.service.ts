@@ -1,10 +1,6 @@
-import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { randomUUID } from "crypto";
 import { prisma } from "../../config/db";
-import { s3 } from "../../config/s3";
-import { env } from "../../config/env";
 import type { UpdateProfileInput, UpdateLocationInput, UpdatePreferencesInput } from "./profile.schema";
+import { encodeGeohash } from "../../helpers/geohash";
 
 export async function getMyProfile(userId: string) {
   const profile = await prisma.profile.findUnique({
@@ -30,6 +26,10 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
       ...(input.bio !== undefined && { bio: input.bio }),
       ...(input.dob && { dob: new Date(input.dob) }),
       ...(input.gender && { gender: input.gender }),
+      ...(input.hometown !== undefined && { hometown: input.hometown }),
+      ...(input.religion !== undefined && { religion: input.religion }),
+      ...(input.occupation !== undefined && { occupation: input.occupation }),
+      ...(input.datingType !== undefined && { datingType: input.datingType }),
     },
     include: {
       photos: { orderBy: { order: "asc" } },
@@ -43,47 +43,37 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
 export async function updateLocation(userId: string, input: UpdateLocationInput) {
   const profile = await prisma.profile.update({
     where: { userId },
-    data: { latitude: input.latitude, longitude: input.longitude },
-    select: { id: true, latitude: true, longitude: true },
+    data: {
+      latitude: input.latitude,
+      longitude: input.longitude,
+      locationUpdatedAt: new Date(),
+      geohash: encodeGeohash(input.latitude, input.longitude, 4),
+    },
+    select: { id: true, latitude: true, longitude: true, locationUpdatedAt: true },
   });
 
   return profile;
 }
 
-export async function getPhotoUploadUrl(userId: string, contentType: string) {
+export async function savePhotoFromCloudinary(userId: string, cloudinaryUrl: string) {
   const profile = await prisma.profile.findUnique({ where: { userId }, select: { id: true } });
   if (!profile) {
     throw Object.assign(new Error("Profile not found"), { statusCode: 404, code: "NOT_FOUND" });
   }
 
-  const ext = contentType.split("/")[1] ?? "jpg";
-  const s3Key = `photos/${profile.id}/${randomUUID()}.${ext}`;
-
-  const command = new PutObjectCommand({
-    Bucket: env.S3_BUCKET_NAME,
-    Key: s3Key,
-    ContentType: contentType,
-  });
-
-  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
-
-  // Count existing photos for order
   const photoCount = await prisma.photo.count({ where: { profileId: profile.id } });
   const isFirst = photoCount === 0;
 
-  // Save placeholder record — URL will be the public CDN path
-  const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${s3Key}`;
   const photo = await prisma.photo.create({
     data: {
       profileId: profile.id,
-      url: publicUrl,
-      s3Key,
+      url: cloudinaryUrl,
       order: photoCount,
       isPrimary: isFirst,
     },
   });
 
-  return { photo, uploadUrl };
+  return { photo };
 }
 
 export async function deletePhoto(userId: string, photoId: string) {
@@ -100,14 +90,8 @@ export async function deletePhoto(userId: string, photoId: string) {
     throw Object.assign(new Error("Photo not found"), { statusCode: 404, code: "NOT_FOUND" });
   }
 
-  // Delete from S3
-  await s3.send(
-    new DeleteObjectCommand({ Bucket: env.S3_BUCKET_NAME, Key: photo.s3Key })
-  );
-
   await prisma.photo.delete({ where: { id: photoId } });
 
-  // If deleted primary, reassign to first remaining photo
   if (photo.isPrimary) {
     const firstPhoto = await prisma.photo.findFirst({
       where: { profileId: profile.id },
@@ -120,11 +104,56 @@ export async function deletePhoto(userId: string, photoId: string) {
 }
 
 export async function upsertPreferences(userId: string, input: UpdatePreferencesInput) {
-  const preferences = await prisma.preference.upsert({
+  return prisma.preference.upsert({
     where: { userId },
     create: { userId, ...input },
     update: input,
   });
+}
 
-  return preferences;
+export async function getPublicProfile(targetUserId: string) {
+  const profile = await prisma.profile.findUnique({
+    where: { userId: targetUserId },
+    select: {
+      id: true,
+      userId: true,
+      name: true,
+      dob: true,
+      gender: true,
+      bio: true,
+      latitude: true,
+      longitude: true,
+      photos:  { select: { id: true, url: true, order: true, isPrimary: true }, orderBy: { order: "asc" } },
+      prompts: { select: { id: true, question: true, answer: true } },
+    },
+  });
+
+  if (!profile) {
+    throw Object.assign(new Error("Profile not found"), { statusCode: 404, code: "NOT_FOUND" });
+  }
+
+  return profile;
+}
+
+export interface SavePromptsInput {
+  prompts: Array<{ question: string; answer: string }>;
+}
+
+export async function savePrompts(userId: string, input: SavePromptsInput) {
+  const profile = await prisma.profile.findUnique({ where: { userId }, select: { id: true } });
+  if (!profile) {
+    throw Object.assign(new Error("Profile not found"), { statusCode: 404, code: "NOT_FOUND" });
+  }
+
+  await prisma.prompt.deleteMany({ where: { profileId: profile.id } });
+
+  const created = await prisma.prompt.createMany({
+    data: input.prompts.map((p) => ({
+      profileId: profile.id,
+      question: p.question,
+      answer: p.answer,
+    })),
+  });
+
+  return { count: created.count };
 }

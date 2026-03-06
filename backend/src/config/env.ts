@@ -13,10 +13,15 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES: z.string().default("15m"),
   JWT_REFRESH_EXPIRES: z.string().default("30d"),
 
-  AWS_REGION: z.string(),
-  AWS_ACCESS_KEY_ID: z.string(),
-  AWS_SECRET_ACCESS_KEY: z.string(),
-  S3_BUCKET_NAME: z.string(),
+  // ── Cloudinary (active) ──────────────────────────────────────────────────────
+  CLOUDINARY_CLOUD_NAME: z.string(),
+  CLOUDINARY_UPLOAD_PRESET: z.string(), // unsigned upload preset from Cloudinary dashboard
+
+  // ── AWS S3 (kept for future use — currently commented out in profile.service) ─
+  AWS_REGION: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_BUCKET_NAME: z.string().optional(),
 
   FIREBASE_PROJECT_ID: z.string().optional(),
   FIREBASE_PRIVATE_KEY: z.string().optional(),
