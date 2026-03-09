@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../../config/db";
 import { redis } from "../../config/redis";
 import { signAccessToken, signRefreshToken } from "../../shared/utils/jwt";
+import { Prisma } from "@prisma/client";
 import { bloomAdd, bloomCheck } from "../../helpers/bloom";
 import { encodeGeohash, expandGeohash } from "../../helpers/geohash";
 
@@ -284,7 +285,10 @@ export async function getDiscoveryFeed(callerId: string) {
     prompts: Array<{ id: string; question: string; answer: string }> | null;
   };
 
-  const genderFilter = preferGender === "any" ? "" : `AND p.gender = '${preferGender.replace(/'/g, "''")}'`;
+  // Build gender condition safely using Prisma.sql (prevents SQL injection)
+  const genderCondition = preferGender !== "any"
+    ? Prisma.sql`AND p.gender = ${preferGender}`
+    : Prisma.sql``;
 
   const rows: RawRow[] = await prisma.$queryRaw`
     SELECT
@@ -326,6 +330,7 @@ export async function getDiscoveryFeed(callerId: string) {
             ST_SetSRID(ST_MakePoint(${profile.longitude}, ${profile.latitude}), 4326)::geography,
             ${maxDistM}
           )
+      ${genderCondition}
     GROUP BY p.id
     LIMIT 20
   `;

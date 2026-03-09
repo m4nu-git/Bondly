@@ -4,8 +4,8 @@ import * as SecureStore from 'expo-secure-store';
 interface TokenContextType {
   token: string | null;
   userId: string | null;
-  setToken: (token: string | null) => void;
-  setUserId: (userId: string | null) => void;
+  setToken: (token: string | null) => Promise<void>;
+  setUserId: (userId: string | null) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }

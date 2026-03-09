@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useRegistration } from '@/context/RegistrationContext';
+import NextButton from '@/components/NextButton';
+import { C } from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 
-const OPTIONS = [
-  'Agnostic', 'Atheist', 'Buddhist', 'Catholic', 'Christian',
-  'Hindu', 'Jewish', 'Muslim', 'Sikh', 'Spiritual', 'Other', 'Prefer not to say',
-];
+const OPTIONS = ['Hindu', 'Muslim', 'Sikh', 'Christian', 'Atheist', 'Other', 'Prefer not to say'];
 
 export default function ReligionScreen() {
   const router = useRouter();
@@ -19,36 +20,34 @@ export default function ReligionScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>What's your religion?</Text>
-      <Text style={styles.subtitle}>Optional — you can skip this.</Text>
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
-        {OPTIONS.map((o) => (
-          <TouchableOpacity
-            key={o}
-            style={[styles.option, selected === o && styles.selected]}
-            onPress={() => setSelected(selected === o ? '' : o)}
-          >
-            <Text style={[styles.optionText, selected === o && styles.selectedText]}>{o}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <TouchableOpacity style={styles.button} onPress={onNext}>
-        <Text style={styles.buttonText}>{selected ? 'Continue' : 'Skip'}</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.iconCircle}><Text style={styles.iconText}>🙏</Text></View>
+      <Text style={styles.title}>What's your{'\n'}religion?</Text>
+      <Text style={styles.sub}>Optional</Text>
+      {OPTIONS.map((o) => (
+        <TouchableOpacity key={o} style={styles.row} onPress={() => setSelected(o === selected ? '' : o)}>
+          <Text style={styles.label}>{o}</Text>
+          <Ionicons
+            name={selected === o ? 'radio-button-on' : 'radio-button-off'}
+            size={22}
+            color={selected === o ? C.primary : C.disabled}
+          />
+        </TouchableOpacity>
+      ))}
+      <NextButton onPress={onNext} disabled={false} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#101010', padding: 24, paddingTop: 80 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#989898', marginBottom: 24 },
-  scroll: { flex: 1 },
-  option: { borderWidth: 1, borderColor: '#333', borderRadius: 12, padding: 16, marginBottom: 10 },
-  selected: { borderColor: '#E85D75', backgroundColor: '#2A1A1E' },
-  optionText: { color: '#989898', fontSize: 16 },
-  selectedText: { color: '#FFFFFF' },
-  button: { backgroundColor: '#E85D75', borderRadius: 30, padding: 16, alignItems: 'center', marginTop: 12 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: C.authBg, paddingHorizontal: 25, paddingTop: 30 },
+  iconCircle: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  iconText: { fontSize: 18 },
+  title: { fontSize: 33, fontWeight: '800', color: C.textPrimary, lineHeight: 43, marginBottom: 4 },
+  sub: { fontSize: 14, color: C.textMuted, marginBottom: 20 },
+  row: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: C.separator,
+  },
+  label: { fontSize: 16, color: C.textPrimary, fontWeight: '500' },
 });

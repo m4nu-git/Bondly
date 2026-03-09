@@ -34,6 +34,24 @@ export async function buildApp() {
     redis,
   });
 
+  // Accept plain text / no content-type and try to parse as JSON
+  // Fixes "expected object, received string" when Content-Type header is missing
+  app.addContentTypeParser("text/plain", { parseAs: "string" }, (_req, body, done) => {
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      done(null, body);
+    }
+  });
+
+  app.addContentTypeParser("*", { parseAs: "string" }, (_req, body, done) => {
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      done(null, body);
+    }
+  });
+
   // Health check
   app.get("/health", async () => ({
     success: true,

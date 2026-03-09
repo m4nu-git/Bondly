@@ -1,67 +1,55 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useRegistration } from '@/context/RegistrationContext';
+import { C } from '@/constants/Colors';
+
+const MAX_CHARS = 250;
 
 export default function WriteAnswerScreen() {
   const router = useRouter();
   const { question } = useLocalSearchParams<{ question: string }>();
-  const { data, update } = useRegistration();
   const [answer, setAnswer] = useState('');
 
   const onSave = () => {
-    if (!answer.trim() || !question) return;
-    const existing = data.prompts ?? [];
-    update({ prompts: [...existing, { question, answer: answer.trim() }] });
-    router.back();
-    // Go back to prompts screen (back past select-prompt)
-    router.back();
+    if (!answer.trim()) return;
+    router.push({ pathname: '/(auth)/prompts', params: { question, answer } });
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Text style={styles.question}>{question}</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.questionBox}>
+        <Text style={styles.questionText}>{question}</Text>
+      </View>
       <TextInput
         style={styles.input}
-        placeholder="Write your answer..."
-        placeholderTextColor="#555"
+        placeholder="Your answer..."
+        placeholderTextColor={C.textMuted}
         value={answer}
-        onChangeText={setAnswer}
+        onChangeText={(t) => setAnswer(t.slice(0, MAX_CHARS))}
         multiline
-        maxLength={150}
+        numberOfLines={4}
         autoFocus
       />
-      <Text style={styles.count}>{answer.length}/150</Text>
+      <Text style={styles.counter}>{answer.length}/{MAX_CHARS}</Text>
       <TouchableOpacity
-        style={[styles.button, !answer.trim() && styles.disabled]}
+        style={[styles.saveBtn, !answer.trim() && styles.saveBtnDisabled]}
         onPress={onSave}
         disabled={!answer.trim()}
       >
-        <Text style={styles.buttonText}>Save answer</Text>
+        <Text style={styles.saveBtnText}>Save answer</Text>
       </TouchableOpacity>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#101010', padding: 24, paddingTop: 80 },
-  question: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 24 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    padding: 16,
-    color: '#FFFFFF',
-    fontSize: 16,
-    backgroundColor: '#1A1A1A',
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  count: { color: '#555', fontSize: 12, textAlign: 'right', marginTop: 6, marginBottom: 16 },
-  button: { backgroundColor: '#E85D75', borderRadius: 30, padding: 16, alignItems: 'center' },
-  disabled: { opacity: 0.4 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: C.authBg, paddingHorizontal: 25, paddingTop: 30 },
+  questionBox: { backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, marginBottom: 20 },
+  questionText: { fontSize: 16, fontWeight: '700', color: C.textPrimary },
+  input: { fontSize: 18, color: C.textPrimary, borderBottomWidth: 1.5, borderBottomColor: C.border, paddingVertical: 8, minHeight: 100, textAlignVertical: 'top' },
+  counter: { color: C.textMuted, fontSize: 12, textAlign: 'right', marginTop: 6 },
+  saveBtn: { backgroundColor: C.primary, borderRadius: 100, paddingVertical: 16, alignItems: 'center', marginTop: 24 },
+  saveBtnDisabled: { backgroundColor: C.disabled },
+  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

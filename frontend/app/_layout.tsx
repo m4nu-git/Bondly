@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TokenProvider, useToken } from '@/context/TokenContext';
 import { RegistrationProvider } from '@/context/RegistrationContext';
 
@@ -20,8 +21,8 @@ function AuthGuard() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#101010', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#E85D75" />
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#66295B" />
       </View>
     );
   }
@@ -32,11 +33,13 @@ function AuthGuard() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <TokenProvider>
-        <RegistrationProvider>
-          <AuthGuard />
-        </RegistrationProvider>
-      </TokenProvider>
+      <SafeAreaProvider>
+        <TokenProvider>
+          <RegistrationProvider>
+            <AuthGuard />
+          </RegistrationProvider>
+        </TokenProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

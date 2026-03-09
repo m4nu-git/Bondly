@@ -8,8 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { chatApi, Message } from '@/api/chat';
 import { useToken } from '@/context/TokenContext';
 import { useSocket } from '@/hooks/useSocket';
+import { C } from '@/constants/Colors';
 
 export default function ChatRoomScreen() {
+  // id = the other user's userId
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { userId } = useToken();
@@ -19,9 +21,16 @@ export default function ChatRoomScreen() {
   const [loading, setLoading] = useState(true);
 
   const { sendMessage } = useSocket({
-    conversationId: id,
-    onMessage: (msg: Message) => {
-      setMessages((prev) => [...prev, msg]);
+    onMessage: (payload) => {
+      // Payload from WS: { senderId, message }
+      const newMsg: Message = {
+        id: Date.now().toString(),
+        senderId: payload.senderId,
+        receiverId: userId ?? '',
+        message: payload.message,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, newMsg]);
       flatListRef.current?.scrollToEnd({ animated: true });
     },
   });
@@ -38,16 +47,23 @@ export default function ChatRoomScreen() {
 
   const send = () => {
     if (!text.trim() || !id) return;
-    sendMessage(id, text.trim());
+    const msg = text.trim();
     setText('');
+    // Optimistic update
+    const optimistic: Message = {
+      id: Date.now().toString(),
+      senderId: userId ?? '',
+      receiverId: id,
+      message: msg,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    flatListRef.current?.scrollToEnd({ animated: true });
+    sendMessage(id, msg);
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#E85D75" />
-      </View>
-    );
+    return <View style={styles.centered}><ActivityIndicator size="large" color={C.primary} /></View>;
   }
 
   return (
@@ -56,9 +72,10 @@ export default function ChatRoomScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={26} color={C.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chat</Text>
       </View>
@@ -73,7 +90,7 @@ export default function ChatRoomScreen() {
           return (
             <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
               <Text style={[styles.bubbleText, isMine ? styles.bubbleTextMine : styles.bubbleTextTheirs]}>
-                {item.content}
+                {item.message}
               </Text>
             </View>
           );
@@ -84,13 +101,18 @@ export default function ChatRoomScreen() {
         <TextInput
           style={styles.input}
           placeholder="Type a message..."
-          placeholderTextColor="#555"
+          placeholderTextColor={C.textMuted}
           value={text}
           onChangeText={setText}
           multiline
+          maxHeight={100}
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={send} disabled={!text.trim()}>
-          <Ionicons name="send" size={20} color={text.trim() ? '#E85D75' : '#333'} />
+        <TouchableOpacity
+          style={[styles.sendBtn, text.trim() && styles.sendBtnActive]}
+          onPress={send}
+          disabled={!text.trim()}
+        >
+          <Ionicons name="arrow-up" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -98,29 +120,34 @@ export default function ChatRoomScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#101010' },
-  centered: { flex: 1, backgroundColor: '#101010', alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  centered: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   header: {
-    flexDirection: 'row', alignItems: 'center', paddingTop: 60,
-    paddingBottom: 16, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#1E1E1E',
+    flexDirection: 'row', alignItems: 'center',
+    paddingTop: 60, paddingBottom: 14, paddingHorizontal: 16,
+    borderBottomWidth: 1, borderBottomColor: C.separator, backgroundColor: '#fff',
   },
   backBtn: { marginRight: 12 },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: C.textPrimary },
   messageList: { padding: 16, paddingBottom: 8 },
   bubble: { maxWidth: '75%', borderRadius: 18, padding: 12, marginBottom: 8 },
-  bubbleMine: { alignSelf: 'flex-end', backgroundColor: '#E85D75', borderBottomRightRadius: 4 },
-  bubbleTheirs: { alignSelf: 'flex-start', backgroundColor: '#1A1A1A', borderBottomLeftRadius: 4 },
+  bubbleMine: { alignSelf: 'flex-end', backgroundColor: C.senderBubble, borderBottomRightRadius: 4 },
+  bubbleTheirs: { alignSelf: 'flex-start', backgroundColor: C.receiverBubble, borderBottomLeftRadius: 4 },
   bubbleText: { fontSize: 15 },
-  bubbleTextMine: { color: '#FFFFFF' },
-  bubbleTextTheirs: { color: '#FFFFFF' },
+  bubbleTextMine: { color: '#fff' },
+  bubbleTextTheirs: { color: C.textPrimary },
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end',
-    borderTopWidth: 1, borderTopColor: '#1E1E1E',
-    padding: 12, gap: 8,
+    borderTopWidth: 1, borderTopColor: C.separator,
+    paddingHorizontal: 12, paddingVertical: 10, gap: 8, backgroundColor: '#fff',
   },
   input: {
-    flex: 1, backgroundColor: '#1A1A1A', borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 10, color: '#FFFFFF', fontSize: 15, maxHeight: 100,
+    flex: 1, backgroundColor: '#F5F5F5', borderRadius: 22,
+    paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: C.textPrimary,
   },
-  sendBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: C.disabled, alignItems: 'center', justifyContent: 'center',
+  },
+  sendBtnActive: { backgroundColor: C.primary },
 });

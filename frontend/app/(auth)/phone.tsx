@@ -1,43 +1,45 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useRegistration } from '@/context/RegistrationContext';
+import NextButton from '@/components/NextButton';
+import { C } from '@/constants/Colors';
 
 export default function PhoneScreen() {
   const router = useRouter();
   const { update } = useRegistration();
   const [phone, setPhone] = useState('');
+  const valid = phone.replace(/\D/g, '').length >= 10;
 
   const onNext = () => {
-    if (phone.length < 10) return;
-    update({ phone });
+    if (!valid) return;
+    update({ phone: phone.replace(/\D/g, '') });
     router.push('/(auth)/name');
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>What's your phone number?</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.iconCircle}><Text style={styles.iconText}>📱</Text></View>
+      <Text style={styles.title}>What's your{'\n'}phone number?</Text>
       <TextInput
         style={styles.input}
         placeholder="Phone number"
-        placeholderTextColor="#666"
+        placeholderTextColor={C.textMuted}
         value={phone}
         onChangeText={setPhone}
         keyboardType="phone-pad"
         maxLength={15}
       />
-      <TouchableOpacity style={[styles.button, phone.length < 10 && styles.disabled]} onPress={onNext} disabled={phone.length < 10}>
-        <Text style={styles.buttonText}>Continue</Text>
-      </TouchableOpacity>
-    </View>
+      <NextButton onPress={onNext} disabled={!valid} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#101010', padding: 24, paddingTop: 80 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 32 },
-  input: { backgroundColor: '#1E1E1E', borderRadius: 12, padding: 16, color: '#FFFFFF', fontSize: 16, marginBottom: 16 },
-  button: { backgroundColor: '#E85D75', borderRadius: 30, padding: 16, alignItems: 'center' },
-  disabled: { opacity: 0.4 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: C.authBg, paddingHorizontal: 25, paddingTop: 30 },
+  iconCircle: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  iconText: { fontSize: 18 },
+  title: { fontSize: 33, fontWeight: '800', color: C.textPrimary, lineHeight: 43, marginBottom: 32 },
+  input: { borderBottomWidth: 1.5, borderBottomColor: C.border, fontSize: 25, color: C.textPrimary, fontWeight: '600', paddingVertical: 8 },
 });

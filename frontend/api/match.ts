@@ -1,27 +1,27 @@
 import { api } from './client';
 
-export interface Match {
+export interface MatchPerson {
   id: string;
-  conversationId: string;
-  matchedAt: string;
-  otherUser: {
-    id: string;
+  profile: {
     name: string;
-    primaryPhoto: string | null;
+    photos: { id: string; url: string }[];
   } | null;
-  lastMessage?: string | null;
+  chatsSent: { message: string; createdAt: string }[];
+  chatsReceived: { message: string; createdAt: string }[];
+}
+
+export interface MatchesResponse {
+  people: MatchPerson[];
+  id: string; // callerId
 }
 
 export const matchApi = {
-  getMatches: async (): Promise<Match[]> => {
-    const res = await api.get<{ data: Match[] }>('/matches');
-    return res.data.data;
+  getAllMatches: async (): Promise<MatchesResponse> => {
+    const res = await api.get<{ data: MatchesResponse }>('/users/allMatches');
+    return res.data.data ?? { people: [], id: '' };
   },
 
-  getMatch: async (id: string): Promise<Match> => {
-    const res = await api.get<{ data: Match }>(`/matches/${id}`);
-    return res.data.data;
+  accept: async (acceptedUserId: string, message = '') => {
+    await api.post('/users/accept', { acceptedUserId, message });
   },
-
-  unmatch: (id: string) => api.delete(`/matches/${id}`),
 };

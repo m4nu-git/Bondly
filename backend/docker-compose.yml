@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgis/postgis:15-3.3
+    platform: linux/amd64
     container_name: hinge_postgres
     environment:
       POSTGRES_USER: hinge

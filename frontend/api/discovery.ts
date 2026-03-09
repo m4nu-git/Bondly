@@ -7,30 +7,33 @@ export interface PhotoItem {
   isPrimary: boolean;
 }
 
-export interface FeedProfile {
+export interface PromptItem {
   id: string;
+  question: string;
+  answer: string;
+}
+
+export interface FeedProfile {
+  id: string;       // profile id
   userId: string;
   name: string;
   dob: string;
   gender: string;
   bio: string | null;
+  age: number | null;
+  hometown: string | null;
+  religion: string | null;
+  occupation: string | null;
+  datingType: string | null;
   latitude: number;
   longitude: number;
-  distance_km: number;
   photos: PhotoItem[];
-}
-
-export interface FeedResponse {
-  profiles: FeedProfile[];
-  page: number;
-  limit: number;
-  count: number;
-  locationStale?: boolean;
+  prompts: PromptItem[];
 }
 
 export const discoveryApi = {
-  getFeed: async (page = 1, limit = 20): Promise<FeedResponse> => {
-    const res = await api.get<{ data: FeedResponse }>('/discovery/feed', { params: { page, limit } });
-    return res.data.data;
+  getFeed: async (): Promise<FeedProfile[]> => {
+    const res = await api.get<{ data: FeedProfile[] }>('/users/matches');
+    return res.data.data ?? [];
   },
 };

@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useRegistration } from '@/context/RegistrationContext';
+import NextButton from '@/components/NextButton';
+import { C } from '@/constants/Colors';
 
 export default function WorkScreen() {
   const router = useRouter();
@@ -14,38 +17,27 @@ export default function WorkScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>What do you do for work?</Text>
-      <Text style={styles.subtitle}>Optional — you can skip this.</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.iconCircle}><Text style={styles.iconText}>💼</Text></View>
+      <Text style={styles.title}>What do you{'\n'}do for work?</Text>
+      <Text style={styles.sub}>Optional — skip if you prefer</Text>
       <TextInput
         style={styles.input}
-        placeholder="e.g. Software Engineer at Google"
-        placeholderTextColor="#555"
+        placeholder="Job title or company"
+        placeholderTextColor={C.textMuted}
         value={occupation}
         onChangeText={setOccupation}
-        autoFocus
       />
-      <TouchableOpacity style={styles.button} onPress={onNext}>
-        <Text style={styles.buttonText}>{occupation.trim() ? 'Continue' : 'Skip'}</Text>
-      </TouchableOpacity>
-    </View>
+      <NextButton onPress={onNext} disabled={false} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#101010', padding: 24, paddingTop: 80 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#989898', marginBottom: 32 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    padding: 16,
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#1A1A1A',
-  },
-  button: { backgroundColor: '#E85D75', borderRadius: 30, padding: 16, alignItems: 'center', marginTop: 8 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: C.authBg, paddingHorizontal: 25, paddingTop: 30 },
+  iconCircle: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  iconText: { fontSize: 18 },
+  title: { fontSize: 33, fontWeight: '800', color: C.textPrimary, lineHeight: 43, marginBottom: 8 },
+  sub: { fontSize: 14, color: C.textMuted, marginBottom: 32 },
+  input: { borderBottomWidth: 1.5, borderBottomColor: C.border, fontSize: 25, color: C.textPrimary, fontWeight: '600', paddingVertical: 8 },
 });
